@@ -1,0 +1,895 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>progs.fun</title>
+  
+  <!-- Firebase SDK -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+    import { getFirestore, collection, addDoc, deleteDoc, doc, onSnapshot, query, orderBy, updateDoc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+    
+    window.firebaseApp = initializeApp({
+      apiKey: "AIzaSyDXYmefyoGfkdsBakxLXC1bDVrlMe2UI3c",
+      authDomain: "newphone-b5c6d.firebaseapp.com",
+      projectId: "newphone-b5c6d",
+      storageBucket: "newphone-b5c6d.firebasestorage.app",
+      messagingSenderId: "411735351318",
+      appId: "1:411735351318:web:1cc494a7898dc7a8e35537"
+    });
+    window.firestoreDB = getFirestore(window.firebaseApp);
+    window.firestore = { collection, addDoc, deleteDoc, doc, onSnapshot, query, orderBy, updateDoc, setDoc, getDoc };
+  </script>
+
+  <style>
+    /* ============================================================
+       БАЗОВЫЕ СТИЛИ
+       ============================================================ */
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    :root {
+      --bg: #08080a; --bg-soft: #0d0d10; --surface: #131316; --surface-hover: #18181c;
+      --surface-raised: #1b1b20; --border: #212126; --border-soft: #18181c; --border-hover: #2e2e35;
+      --text: #f4f4f6; --text-muted: #8f8f98; --text-dim: #5a5a63;
+      --accent: #6ee7b7; --accent-2: #818cf8; --accent-3: #fbbf24;
+      --accent-green: #10b981; --accent-red: #f87171; --accent-blue: #60a5fa;
+      --accent-dim: rgba(110, 231, 183, 0.08);
+      --radius: 18px; --radius-sm: 10px;
+      --font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      --mono: 'JetBrains Mono', 'SF Mono', 'Fira Code', 'Consolas', monospace;
+      --ease: cubic-bezier(0.22, 1, 0.36, 1);
+      --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: var(--font); background: var(--bg); color: var(--text);
+      line-height: 1.65; min-height: 100vh; display: flex; flex-direction: column;
+      overflow-x: hidden; position: relative; -webkit-font-smoothing: antialiased;
+    }
+
+    body::before {
+      content: ''; position: fixed; inset: 0;
+      background-image: linear-gradient(rgba(255,255,255,0.018) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.018) 1px, transparent 1px);
+      background-size: 64px 64px;
+      mask-image: radial-gradient(ellipse 90% 60% at 50% 0%, #000 20%, transparent 75%);
+      -webkit-mask-image: radial-gradient(ellipse 90% 60% at 50% 0%, #000 20%, transparent 75%);
+      pointer-events: none; z-index: 0;
+    }
+    body::after {
+      content: ''; position: fixed; top: -40vh; left: 50%; transform: translateX(-50%);
+      width: 140vw; height: 90vh;
+      background: radial-gradient(ellipse 40% 50% at 30% 30%, rgba(110,231,183,0.07) 0%, transparent 60%), radial-gradient(ellipse 40% 50% at 70% 20%, rgba(129,140,248,0.06) 0%, transparent 60%);
+      pointer-events: none; z-index: 0;
+    }
+
+    .container { width: 100%; max-width: 920px; margin: 0 auto; padding: 0 28px; position: relative; z-index: 1; }
+    .container-lessons { max-width: 800px; margin: 0 auto; padding: 0 24px; width: 100%; position: relative; z-index: 1; }
+
+    /* ============================================================
+       СТИЛИ ГЛАВНОЙ
+       ============================================================ */
+    .page-section { display: none; }
+    .page-section.active { display: flex; flex-direction: column; flex: 1; }
+
+    .nav { position: sticky; top: 0; z-index: 100; padding: 16px 0; background: rgba(8, 8, 10, 0.65); backdrop-filter: blur(20px) saturate(180%); -webkit-backdrop-filter: blur(20px) saturate(180%); border-bottom: 1px solid var(--border-soft); }
+    .nav .container { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+    .nav-logo { font-family: var(--mono); font-size: 0.9rem; font-weight: 600; color: var(--text); text-decoration: none; display: flex; align-items: center; gap: 12px; transition: opacity 0.25s var(--ease); }
+    .nav-logo:hover { opacity: 0.85; }
+    .logo-svg { width: 32px; height: 32px; filter: drop-shadow(0 0 12px rgba(110,231,183,0.4)); transition: transform 0.4s var(--ease); }
+    .nav-logo:hover .logo-svg { transform: rotate(10deg) scale(1.05); }
+    .nav-links { display: flex; gap: 2px; list-style: none; align-items: center; }
+    .nav-links a { color: var(--text-muted); text-decoration: none; font-size: 0.84rem; padding: 8px 14px; border-radius: 100px; transition: color 0.25s var(--ease), background 0.25s var(--ease); }
+    .nav-links a:hover { color: var(--text); background: var(--surface); }
+
+    header { padding: 130px 0 80px; position: relative; z-index: 1; }
+    .status-badge { display: inline-flex; align-items: center; gap: 9px; font-size: 0.78rem; color: var(--text-muted); letter-spacing: 0.02em; margin-bottom: 36px; padding: 8px 18px 8px 12px; border-radius: 100px; background: linear-gradient(180deg, var(--surface-raised), var(--surface)); border: 1px solid var(--border); box-shadow: 0 1px 0 rgba(255,255,255,0.03) inset, 0 8px 24px -12px rgba(0,0,0,0.5); }
+    .status-badge::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 3px rgba(110,231,183,0.15), 0 0 16px var(--accent); animation: pulse 2.4s ease-in-out infinite; }
+    @keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.6; transform: scale(0.85); } }
+
+    h1 { font-size: clamp(2.6rem, 7vw, 4rem); font-weight: 700; letter-spacing: -0.04em; line-height: 1.02; margin-bottom: 28px; }
+    h1 .line-1 { display: block; background: linear-gradient(180deg, var(--text) 30%, #a1a1aa 100%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+    h1 .line-2 { display: block; color: var(--text-dim); font-weight: 400; font-size: 0.55em; letter-spacing: -0.02em; margin-top: 6px; }
+    .subtitle { font-size: clamp(1.02rem, 2.4vw, 1.2rem); color: var(--text-muted); max-width: 580px; line-height: 1.7; }
+    .subtitle strong { color: var(--text); font-weight: 500; }
+
+    .hero-actions { display: flex; gap: 12px; margin-top: 40px; flex-wrap: wrap; }
+    .btn { display: inline-flex; align-items: center; gap: 8px; padding: 12px 22px; border-radius: 100px; font-size: 0.9rem; font-weight: 500; text-decoration: none; transition: all 0.3s var(--ease); border: 1px solid transparent; cursor: pointer; }
+    .btn-primary { background: var(--text); color: var(--bg); border-color: var(--text); }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 12px 32px -12px rgba(255,255,255,0.35); }
+    .btn-ghost { background: var(--surface); color: var(--text); border-color: var(--border); }
+    .btn-ghost:hover { border-color: var(--border-hover); background: var(--surface-hover); transform: translateY(-2px); }
+    .btn svg { width: 16px; height: 16px; }
+
+    section { padding: 72px 0; position: relative; z-index: 1; }
+    .section-header { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; margin-bottom: 36px; flex-wrap: wrap; }
+    .section-label { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.18em; color: var(--text-muted); font-weight: 600; display: flex; align-items: center; gap: 14px; }
+    .section-label::before { content: ''; width: 28px; height: 1px; background: linear-gradient(90deg, var(--accent), transparent); }
+    .section-num { font-family: var(--mono); font-size: 0.72rem; color: var(--text-dim); letter-spacing: 0.05em; }
+
+    .skills-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; }
+    .skill-card { padding: 28px 26px; border-radius: var(--radius); background: linear-gradient(180deg, var(--surface-raised) 0%, var(--surface) 100%); border: 1px solid var(--border); transition: all 0.4s var(--ease); position: relative; overflow: hidden; box-shadow: 0 1px 0 rgba(255,255,255,0.025) inset; }
+    .skill-card:hover { border-color: var(--border-hover); transform: translateY(-4px); box-shadow: 0 20px 40px -20px rgba(0,0,0,0.6), 0 1px 0 rgba(255,255,255,0.03) inset; }
+    .skill-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; gap: 12px; }
+    .skill-name { font-family: var(--mono); font-size: 1.02rem; font-weight: 600; display: flex; align-items: center; gap: 11px; }
+    .skill-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .skill-dot--py  { background: #6ee7b7; box-shadow: 0 0 12px rgba(110,231,183,.7); }
+    .skill-dot--web { background: #fbbf24; box-shadow: 0 0 12px rgba(251,191,36,.6); }
+    .skill-dot--rust{ background: #f97316; box-shadow: 0 0 12px rgba(249,115,22,.6); }
+    .skill-dot--go  { background: #60a5fa; box-shadow: 0 0 12px rgba(96,165,250,.6); }
+    .skill-level { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-muted); padding: 4px 11px; border-radius: 100px; background: var(--bg-soft); border: 1px solid var(--border); white-space: nowrap; font-weight: 500; }
+    .skill-desc { font-size: 0.9rem; color: var(--text-muted); line-height: 1.65; }
+    .skill-desc em { color: var(--text-dim); font-style: normal; }
+
+    .projects-grid { display: grid; grid-template-columns: 1fr; gap: 16px; }
+    .project-card { display: flex; flex-direction: column; border-radius: var(--radius); background: linear-gradient(180deg, var(--surface-raised) 0%, var(--surface) 100%); border: 1px solid var(--border); padding: 32px; text-decoration: none; color: var(--text); transition: all 0.4s var(--ease); position: relative; overflow: hidden; box-shadow: 0 1px 0 rgba(255,255,255,0.025) inset; }
+    .project-card::after { content: ''; position: absolute; inset: 0; background: radial-gradient(circle at 100% 0%, rgba(110,231,183,0.08), transparent 60%); opacity: 0; transition: opacity 0.4s var(--ease); pointer-events: none; }
+    .project-card:hover { border-color: rgba(110,231,183,0.35); transform: translateY(-4px); box-shadow: 0 20px 40px -20px rgba(0,0,0,0.6), 0 1px 0 rgba(255,255,255,0.03) inset; }
+    .project-card:hover::after { opacity: 1; }
+    .project-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; margin-bottom: 20px; position: relative; z-index: 1; }
+    .project-icon { width: 54px; height: 54px; border-radius: 16px; display: flex; align-items: center; justify-content: center; background: var(--accent-dim); border: 1px solid rgba(110,231,183,0.15); color: var(--accent); flex-shrink: 0; transition: transform 0.3s var(--ease); }
+    .project-card:hover .project-icon { transform: scale(1.05) rotate(-3deg); }
+    .project-icon svg { width: 26px; height: 26px; }
+    .project-status { display: inline-flex; align-items: center; gap: 6px; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 600; padding: 5px 12px; border-radius: 100px; background: rgba(251,191,36,0.08); color: var(--accent-3); border: 1px solid rgba(251,191,36,0.2); }
+    .project-status::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--accent-3); box-shadow: 0 0 8px var(--accent-3); }
+    .project-status.dev { background: rgba(16,185,129,0.1); color: var(--accent-green); border-color: rgba(16,185,129,0.2); }
+    .project-status.dev::before { background: var(--accent-green); box-shadow: 0 0 8px var(--accent-green); }
+    .project-body { position: relative; z-index: 1; }
+    .project-title { font-size: 1.35rem; font-weight: 600; letter-spacing: -0.02em; margin-bottom: 10px; display: flex; align-items: center; gap: 10px; }
+    .project-desc { font-size: 0.95rem; color: var(--text-muted); line-height: 1.65; margin-bottom: 24px; max-width: 600px; }
+    .project-tags { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 24px; position: relative; z-index: 1; }
+    .project-tag { font-family: var(--mono); font-size: 0.72rem; color: var(--text-dim); padding: 4px 10px; border-radius: 6px; background: var(--bg-soft); border: 1px solid var(--border); }
+    .project-footer { display: flex; justify-content: space-between; align-items: center; margin-top: auto; padding-top: 20px; border-top: 1px solid var(--border-soft); position: relative; z-index: 1; }
+    .project-link-text { font-size: 0.85rem; font-family: var(--mono); color: var(--text-muted); display: flex; align-items: center; gap: 6px; }
+    .project-arrow { width: 36px; height: 36px; border-radius: 50%; background: var(--surface); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; transition: all 0.3s var(--ease); }
+    .project-arrow svg { width: 16px; height: 16px; color: var(--text-muted); transition: color 0.3s var(--ease); }
+    .project-card:hover .project-arrow { background: var(--text); border-color: var(--text); }
+    .project-card:hover .project-arrow svg { color: var(--bg); transform: translateX(2px); }
+
+    /* Vectra Preview */
+    .vectra-preview { margin-top: 20px; margin-bottom: 24px; border-radius: 10px; overflow: hidden; border: 1px solid var(--border); box-shadow: 0 10px 30px -10px rgba(0,0,0,0.5); position: relative; z-index: 1; background: #fff; }
+    .vectra-toolbar { background: #f1f3f4; padding: 8px 12px; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid #e0e0e0; overflow-x: auto; scrollbar-width: none; }
+    .vectra-toolbar::-webkit-scrollbar { display: none; }
+    .vectra-tools { display: flex; gap: 4px; align-items: center; }
+    .vectra-tools span { display: flex; align-items: center; justify-content: center; width: 24px; height: 24px; border-radius: 4px; color: #5f6368; transition: background 0.2s; flex-shrink: 0; }
+    .vectra-tools span.active { background: #e8eaed; color: #1a73e8; }
+    .vectra-tools span:hover { background: #e8eaed; }
+    .vectra-sep { width: 1px; height: 16px; background: #dadce0; margin: 0 4px; flex-shrink: 0; }
+    .vectra-inputs { display: flex; gap: 8px; margin-left: auto; flex-shrink: 0; }
+    .vectra-inputs div { background: #fff; border: 1px solid #dadce0; border-radius: 4px; height: 24px; display: flex; align-items: center; padding: 0 8px; font-size: 11px; color: #3c4043; font-family: sans-serif; }
+    .vectra-canvas { height: 140px; background-color: #fff; background-image: linear-gradient(45deg, #f0f0f0 25%, transparent 25%), linear-gradient(-45deg, #f0f0f0 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #f0f0f0 75%), linear-gradient(-45deg, transparent 75%, #f0f0f0 75%); background-size: 20px 20px; background-position: 0 0, 0 10px, 10px -10px, -10px 0px; position: relative; }
+
+    .principles { display: grid; gap: 1px; border-radius: var(--radius); overflow: hidden; border: 1px solid var(--border); background: var(--border); }
+    .principle { display: flex; gap: 22px; padding: 26px 28px; background: var(--surface); transition: background 0.35s var(--ease); align-items: flex-start; }
+    .principle:hover { background: var(--surface-hover); }
+    .principle-num { font-family: var(--mono); font-size: 0.8rem; color: var(--accent); padding-top: 3px; flex-shrink: 0; opacity: 0.85; font-weight: 500; }
+    .principle-body h3 { font-size: 1rem; font-weight: 600; margin-bottom: 6px; letter-spacing: -0.01em; }
+    .principle-body p { font-size: 0.9rem; color: var(--text-muted); line-height: 1.65; }
+
+    .contacts { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .contact-link { display: flex; flex-direction: column; gap: 16px; padding: 24px; border-radius: var(--radius); background: linear-gradient(180deg, var(--surface-raised) 0%, var(--surface) 100%); border: 1px solid var(--border); text-decoration: none; color: var(--text); transition: all 0.35s var(--ease); position: relative; overflow: hidden; box-shadow: 0 1px 0 rgba(255,255,255,0.025) inset; }
+    .contact-link::after { content: ''; position: absolute; inset: 0; background: radial-gradient(circle at 100% 0%, rgba(110,231,183,0.06), transparent 60%); opacity: 0; transition: opacity 0.4s var(--ease); pointer-events: none; }
+    .contact-link:hover { border-color: rgba(110,231,183,0.35); transform: translateY(-3px); box-shadow: 0 20px 40px -20px rgba(0,0,0,0.6), 0 1px 0 rgba(255,255,255,0.03) inset; }
+    .contact-link:hover::after { opacity: 1; }
+    .contact-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .contact-icon { width: 44px; height: 44px; border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; background: var(--accent-dim); border: 1px solid rgba(110,231,183,0.15); transition: background 0.3s var(--ease), transform 0.3s var(--ease); flex-shrink: 0; }
+    .contact-link:hover .contact-icon { background: rgba(110,231,183,0.14); transform: scale(1.05); }
+    .contact-icon svg { width: 22px; height: 22px; color: var(--accent); }
+    .contact-arrow { color: var(--text-dim); transition: color 0.3s var(--ease), transform 0.3s var(--ease); flex-shrink: 0; }
+    .contact-arrow svg { width: 18px; height: 18px; }
+    .contact-link:hover .contact-arrow { color: var(--accent); transform: translate(3px, -3px); }
+    .contact-info { display: flex; flex-direction: column; gap: 3px; position: relative; z-index: 1; }
+    .contact-name { font-weight: 600; font-size: 1rem; letter-spacing: -0.01em; }
+    .contact-handle { color: var(--text-muted); font-size: 0.84rem; font-family: var(--mono); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+    footer { margin-top: auto; padding: 40px 0 48px; border-top: 1px solid var(--border-soft); position: relative; z-index: 1; }
+    footer .container { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; }
+    footer p { color: var(--text-muted); font-size: 0.84rem; }
+    footer .footer-tag { font-family: var(--mono); font-size: 0.76rem; color: var(--text-dim); display: flex; align-items: center; gap: 8px; }
+    footer .footer-tag::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); opacity: 0.6; }
+
+    .reveal { opacity: 0; transform: translateY(28px); transition: opacity 0.9s var(--ease-out), transform 0.9s var(--ease-out); will-change: opacity, transform; }
+    .reveal.is-visible { opacity: 1; transform: translateY(0); }
+    .reveal[data-delay="1"] { transition-delay: 0.08s; }
+    .reveal[data-delay="2"] { transition-delay: 0.16s; }
+    .reveal[data-delay="3"] { transition-delay: 0.24s; }
+    .reveal[data-delay="4"] { transition-delay: 0.32s; }
+    .reveal[data-delay="5"] { transition-delay: 0.4s; }
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
+    .hero-anim { animation: fadeUp 1s var(--ease-out) both; }
+    .hero-anim-1 { animation-delay: 0.05s; }
+    .hero-anim-2 { animation-delay: 0.18s; }
+    .hero-anim-3 { animation-delay: 0.32s; }
+    .hero-anim-4 { animation-delay: 0.46s; }
+
+    /* ============================================================
+       СТИЛИ УРОКОВ
+       ============================================================ */
+    .lessons-wrapper { display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 20px; }
+    .auth-card { background: var(--surface); padding: 40px 32px; border-radius: var(--radius); border: 1px solid var(--border); width: 100%; max-width: 400px; box-shadow: 0 20px 40px -20px rgba(0,0,0,0.5); }
+    .auth-card h1 { font-size: 1.5rem; margin-bottom: 8px; text-align: center; }
+    .auth-card p { color: var(--text-muted); font-size: 0.9rem; text-align: center; margin-bottom: 24px; }
+    .form-group { margin-bottom: 16px; }
+    .form-group label { display: block; font-size: 0.85rem; margin-bottom: 6px; color: var(--text-muted); }
+    input, select, textarea, button { font-family: inherit; font-size: 0.95rem; width: 100%; padding: 12px 16px; border-radius: 10px; border: 1px solid var(--border); background: var(--surface); color: var(--text); outline: none; transition: border-color 0.2s; }
+    input:focus, select:focus, textarea:focus { border-color: var(--accent); }
+    button { cursor: pointer; font-weight: 600; background: var(--text); color: var(--bg); border: none; transition: transform 0.2s, opacity 0.2s; }
+    button:hover { transform: translateY(-1px); opacity: 0.9; }
+    button:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+    .btn-secondary { background: var(--surface-raised); color: var(--text); border: 1px solid var(--border); }
+    .btn-success { background: rgba(16,185,129,0.15); color: var(--accent-green); border: 1px solid rgba(16,185,129,0.3); }
+    .btn-danger { background: rgba(248,113,113,0.1); color: var(--accent-red); border: 1px solid rgba(248,113,113,0.2); }
+
+    #lessons-app-screen { display: none; padding: 40px 0; width: 100%; }
+    .app-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px; padding-bottom: 20px; border-bottom: 1px solid var(--border); }
+    .user-info h2 { font-size: 1.4rem; }
+    .user-info .role { font-size: 0.8rem; color: var(--accent); font-family: var(--mono); }
+    
+    .motivation-card { background: linear-gradient(135deg, rgba(129,140,248,0.1), rgba(110,231,183,0.05)); border: 1px solid rgba(129,140,248,0.2); border-radius: var(--radius); padding: 24px; margin-bottom: 32px; display: flex; justify-content: space-between; align-items: center; }
+    .streak { font-size: 1.2rem; font-weight: 700; color: var(--text); }
+    .streak span { color: var(--accent-3); }
+    
+    .section-title { font-size: 1.1rem; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; }
+    .task-list { display: flex; flex-direction: column; gap: 16px; margin-bottom: 32px; }
+    .task-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 12px; }
+    .task-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+    .task-header h4 { font-size: 1.1rem; margin-bottom: 4px; }
+    .task-header p { font-size: 0.9rem; color: var(--text-muted); }
+    
+    .badge { font-size: 0.7rem; font-family: var(--mono); padding: 4px 8px; border-radius: 6px; background: var(--surface-raised); color: var(--text-muted); display: inline-block; white-space: nowrap; }
+    .badge-warning { background: rgba(251,191,36,0.15); color: var(--accent-3); }
+    .badge-success { background: rgba(16,185,129,0.15); color: var(--accent-green); }
+    .badge-danger { background: rgba(248,113,113,0.15); color: var(--accent-red); }
+    .badge-info { background: rgba(96,165,250,0.15); color: var(--accent-blue); }
+
+    .answer-area { margin-top: 8px; padding-top: 16px; border-top: 1px dashed var(--border); }
+    .answer-area textarea { min-height: 80px; resize: vertical; font-family: var(--mono); font-size: 0.85rem; }
+    .teacher-comment { font-size: 0.85rem; color: var(--accent-blue); margin-top: 8px; font-style: italic; }
+    .admin-panel { background: var(--surface-raised); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; margin-bottom: 32px; }
+    .admin-panel h3 { margin-bottom: 16px; font-size: 1.1rem; }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+    .empty-state { color: var(--text-muted); font-size: 0.9rem; font-style: italic; padding: 12px 0; }
+
+    #loading-overlay { position: fixed; inset: 0; background: rgba(8,8,10,0.8); backdrop-filter: blur(4px); display: none; align-items: center; justify-content: center; z-index: 1000; color: var(--text); font-family: var(--mono); }
+    #toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(100px); background: var(--surface-raised); border: 1px solid var(--border); padding: 12px 24px; border-radius: 100px; font-size: 0.9rem; transition: transform 0.3s cubic-bezier(0.16,1,0.3,1); z-index: 2000; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+    #toast.show { transform: translateX(-50%) translateY(0); }
+
+    @media (max-width: 700px) {
+      .container, .container-lessons { padding: 0 20px; }
+      header { padding: 84px 0 48px; }
+      section { padding: 56px 0; }
+      .nav-links { display: none; }
+      .skills-grid { grid-template-columns: 1fr; }
+      .contacts { grid-template-columns: 1fr; }
+      .principle { padding: 22px 20px; gap: 16px; }
+      .project-card { padding: 24px; }
+      footer .container { flex-direction: column; text-align: center; }
+      .hero-actions { margin-top: 32px; }
+      .form-row { grid-template-columns: 1fr; }
+    }
+    ::selection { background: var(--accent); color: var(--bg); }
+    ::-webkit-scrollbar { width: 10px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: #26262c; border-radius: 10px; border: 2px solid var(--bg); }
+    ::-webkit-scrollbar-thumb:hover { background: #35353d; }
+    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; } .reveal { opacity: 1; transform: none; } }
+  </style>
+</head>
+<body>
+
+  <div id="loading-overlay">Синхронизация...</div>
+  <div id="toast">Уведомление</div>
+
+  <!-- ============================================================
+       ГЛАВНАЯ СТРАНИЦА (PORTFOLIO)
+       ============================================================ -->
+  <div id="page-home" class="page-section">
+    <nav class="nav">
+      <div class="container">
+        <a href="#" class="nav-logo">
+          <svg class="logo-svg" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M16 2L28.1244 9V23L16 30L3.87564 23V9L16 2Z" stroke="url(#logo-grad)" stroke-width="2.5" stroke-linejoin="round"/>
+            <path d="M12 22V10H16.5C18.9853 10 21 12.0147 21 14.5C21 16.9853 18.9853 19 16.5 19H14" stroke="url(#logo-grad)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+            <defs>
+              <linearGradient id="logo-grad" x1="4" y1="2" x2="28" y2="30" gradientUnits="userSpaceOnUse">
+                <stop stop-color="#6ee7b7"/><stop offset="1" stop-color="#818cf8"/>
+              </linearGradient>
+            </defs>
+          </svg>
+          <span>progs.fun</span>
+        </a>
+        <ul class="nav-links">
+          <li><a href="#about">О себе</a></li>
+          <li><a href="#skills">Навыки</a></li>
+          <li><a href="#projects">Проекты</a></li>
+          <li><a href="#approach">Подход</a></li>
+          <li><a href="#contacts">Контакты</a></li>
+        </ul>
+      </div>
+    </nav>
+
+    <header id="about">
+      <div class="container">
+        <div class="status-badge hero-anim hero-anim-1">Открыт к интересным задачам</div>
+        <h1 class="hero-anim hero-anim-2">
+          <span class="line-1">Алексей Рожков</span>
+          <span class="line-2">Разработчик · Python · Rust · Web</span>
+        </h1>
+        <p class="subtitle hero-anim hero-anim-3">
+          Пишу на <strong>Python</strong> и <strong>Rust</strong>, собираю интерфейсы
+          на <strong>HTML, CSS и JS</strong>. Изучаю <strong>Go</strong>.
+          Люблю чистый код, аккуратные анимации и решения, в которых нет ничего лишнего.
+        </p>
+        <div class="hero-actions hero-anim hero-anim-4">
+          <a href="#contacts" class="btn btn-primary">Связаться <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg></a>
+          <a href="#skills" class="btn btn-ghost">Мои навыки</a>
+        </div>
+      </div>
+    </header>
+
+    <section id="skills">
+      <div class="container">
+        <div class="section-header reveal"><div class="section-label">Навыки</div><div class="section-num">01 / 04</div></div>
+        <div class="skills-grid">
+          <div class="skill-card reveal" data-delay="1">
+            <div class="skill-head"><div class="skill-name"><span class="skill-dot skill-dot--py"></span>Python</div><span class="skill-level">Уверенно</span></div>
+            <p class="skill-desc">Telegram-боты, REST API, работа с базами данных, десктопные приложения (PyQt6) — от прототипа до рабочего сервиса.</p>
+          </div>
+          <div class="skill-card reveal" data-delay="2">
+            <div class="skill-head"><div class="skill-name"><span class="skill-dot skill-dot--web"></span>HTML · CSS · JS</div><span class="skill-level">Уверенно</span></div>
+            <p class="skill-desc">Пишу красивые сайты с плавными анимациями и переходами. Внимание к деталям и адаптивности.</p>
+          </div>
+          <div class="skill-card reveal" data-delay="3">
+            <div class="skill-head"><div class="skill-name"><span class="skill-dot skill-dot--rust"></span>Rust</div><span class="skill-level">Junior</span></div>
+            <p class="skill-desc">Знаю основы языка, уверенно работаю на уровне Junior-разработчика. Продолжаю углубляться.</p>
+          </div>
+          <div class="skill-card reveal" data-delay="4">
+            <div class="skill-head"><div class="skill-name"><span class="skill-dot skill-dot--go"></span>Go</div><span class="skill-level">В процессе</span></div>
+            <p class="skill-desc"><em>Изучаю. Скоро здесь появится описание.</em></p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="projects">
+      <div class="container">
+        <div class="section-header reveal"><div class="section-label">Проекты</div><div class="section-num">02 / 04</div></div>
+        <div class="projects-grid">
+          <a href="https://t.me/languages_chat_bot" target="_blank" rel="noopener noreferrer" class="project-card reveal" data-delay="1">
+            <div class="project-top">
+              <div class="project-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/><path d="M8 10h.01M12 10h.01M16 10h.01"/></svg></div>
+              <span class="project-status">Бета-тест</span>
+            </div>
+            <div class="project-body"><h3 class="project-title">LangBot</h3><p class="project-desc">Telegram-бот для изучения иностранных языков. Позволяет практиковать разговорный английский или китайский с помощью ИИ в формате голосового общения (г/с). Бот отвечает голосом на изучаемом языке и разбирает ошибки на русском.</p></div>
+            <div class="project-tags"><span class="project-tag">Python</span><span class="project-tag">Telebot</span><span class="project-tag">AI</span><span class="project-tag">Voice</span></div>
+            <div class="project-footer"><span class="project-link-text">@languages_chat_bot</span><div class="project-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg></div></div>
+          </a>
+          <a href="https://drive.google.com/drive/folders/1nbp2AtkxLbyV_7KlIVr903pxOsGZilES?usp=drive_link" target="_blank" rel="noopener noreferrer" class="project-card reveal" data-delay="2">
+            <div class="project-top">
+              <div class="project-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="M2 2l7.586 7.586"/><circle cx="11" cy="11" r="2"/></svg></div>
+              <span class="project-status dev">Доступен</span>
+            </div>
+            <div class="project-body"><h3 class="project-title">Vectra Editor</h3><p class="project-desc">Минималистичный векторный редактор в стиле Scratch для десктопа. Включает в себя: рисование линий, прямоугольников, эллипсов, треугольников, звезд и стрелок; умную заливку контуров; кисть и ластик; добавление и форматирование текста; настройку цветов и толщины обводки; поддержку Undo/Redo и экспорт в PNG с прозрачностью.</p></div>
+            <div class="vectra-preview">
+              <div class="vectra-toolbar">
+                <div class="vectra-tools">
+                  <span class="active"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 3 L5 19 L9.5 14.5 L12 21 L14.5 20 L12 13.5 L18 13.5 Z"/></svg></span>
+                  <span class="vectra-sep"></span>
+                  <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20 L6 15 L16 5 L19 8 L9 18 Z"/></svg></span>
+                  <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 17 L10 11 L16 17 L10 23 Z"/><path d="M10 11 L16 5 L22 11 L16 17 Z"/></svg></span>
+                  <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12 L10 17 L19 8"/><path d="M3 19 L21 19 L18 22 L6 22 Z" fill="currentColor" opacity="0.4"/></svg></span>
+                  <span class="vectra-sep"></span>
+                  <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="19" x2="19" y2="5"/></svg></span>
+                  <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="6" width="16" height="12"/></svg></span>
+                  <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="8"/></svg></span>
+                  <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 4 22 20 2 20"/></svg></span>
+                  <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15 9 22 9 17 14 19 22 12 17 5 22 7 14 2 9 9 9"/></svg></span>
+                  <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 19L19 5M19 5V15M19 5H9"/></svg></span>
+                  <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6 L4 4 L20 4 L20 6 M12 4 L12 20 M8 20 L16 20"/></svg></span>
+                  <span class="vectra-sep"></span>
+                  <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 7 L4 11 L9 15"/><path d="M4 11 L14 11 A5 5 0 0 1 14 21 L11 21"/></svg></span>
+                  <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 7 L20 11 L15 15"/><path d="M20 11 L10 11 A5 5 0 0 0 10 21 L13 21"/></svg></span>
+                </div>
+                <div class="vectra-inputs"><div style="width:36px; justify-content:center;">2.00</div><div style="width:60px;">Arial</div><div style="width:36px; justify-content:center;">24.00</div></div>
+              </div>
+              <div class="vectra-canvas"></div>
+            </div>
+            <div class="project-tags"><span class="project-tag">Python</span><span class="project-tag">PyQt6</span><span class="project-tag">Vector</span><span class="project-tag">Desktop</span></div>
+            <div class="project-footer"><span class="project-link-text">Скачать с Google Drive</span><div class="project-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></div></div>
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <section id="approach">
+      <div class="container">
+        <div class="section-header reveal"><div class="section-label">Подход к работе</div><div class="section-num">03 / 04</div></div>
+        <div class="principles reveal">
+          <div class="principle"><span class="principle-num">01</span><div class="principle-body"><h3>Простота важнее сложности</h3><p>Решение должно быть настолько простым, насколько возможно — и не проще.</p></div></div>
+          <div class="principle"><span class="principle-num">02</span><div class="principle-body"><h3>Чистый, читаемый код</h3><p>Код читают люди, поэтому структура и понятность важнее «умных» трюков.</p></div></div>
+          <div class="principle"><span class="principle-num">03</span><div class="principle-body"><h3>Внимание к деталям</h3><p>Отступы, анимации, поведение на мобильных — мелочи складываются в качество.</p></div></div>
+          <div class="principle"><span class="principle-num">04</span><div class="principle-body"><h3>Постоянное развитие</h3><p>От Python и веба — к Rust и Go. Учусь на практике и довожу проекты до конца.</p></div></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="contacts">
+      <div class="container">
+        <div class="section-header reveal"><div class="section-label">Связь</div><div class="section-num">04 / 04</div></div>
+        <div class="contacts">
+          <a href="https://t.me/geep_code" target="_blank" rel="noopener noreferrer" class="contact-link reveal" data-delay="1">
+            <div class="contact-top"><div class="contact-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2.5L2.5 9.5l6 3 3 6 4-5 6 4 3-15z"/></svg></div><span class="contact-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7M17 7H8M17 7v9"/></svg></span></div>
+            <div class="contact-info"><span class="contact-name">Telegram</span><span class="contact-handle">@geep_code</span></div>
+          </a>
+          <a href="https://max.ru/join/Vq8A811BSBzT6nu0PwdLP-vw9v7j459DcACmCqJx9n0" target="_blank" rel="noopener noreferrer" class="contact-link reveal" data-delay="2">
+            <div class="contact-top"><div class="contact-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8 12h8M12 8v8"/></svg></div><span class="contact-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7M17 7H8M17 7v9"/></svg></span></div>
+            <div class="contact-info"><span class="contact-name">MAX</span><span class="contact-handle">Канал</span></div>
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <footer>
+      <div class="container"><p>© <span id="year"></span> Алексей Рожков · progs.fun</p><span class="footer-tag">open to work</span></div>
+    </footer>
+  </div>
+
+  <!-- ============================================================
+       СТРАНИЦА УРОКОВ (LESSONS)
+       ============================================================ -->
+  <div id="page-lessons" class="page-section">
+    
+    <!-- Экран входа -->
+    <div id="auth-screen" class="lessons-wrapper">
+      <div class="auth-card">
+        <h1>Вход в систему</h1>
+        <p>Закрытый доступ</p>
+        <div id="login-error" style="color: var(--accent-red); font-size: 0.85rem; margin-bottom: 16px; display: none; text-align: center;"></div>
+        <form id="login-form">
+          <div class="form-group"><label>Логин</label><input type="text" id="username" placeholder="Введите имя" required autocomplete="off"></div>
+          <div class="form-group"><label>Пароль</label><input type="password" id="password" placeholder="••••••••" required></div>
+          <button type="submit" style="margin-top: 8px;">Войти</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Личный кабинет -->
+    <div id="lessons-app-screen" class="container-lessons">
+      <div class="app-header">
+        <div class="user-info"><h2 id="display-name">Имя</h2><div class="role" id="display-role">Роль</div></div>
+        <button id="logout-btn" class="btn-secondary" style="width: auto;">Выйти</button>
+      </div>
+
+      <!-- Панель ученика -->
+      <div id="student-view" style="display: none;">
+        <div class="motivation-card">
+          <div><div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 4px;">Твой прогресс</div><div class="streak">⭐ <span id="student-xp">0</span> XP</div></div>
+          <div style="text-align: right;"><div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 4px;">Решено</div><div class="streak"><span id="student-solved">0</span> задач</div></div>
+        </div>
+        <div class="section-title"><span>📚 Задачи на уроке</span></div>
+        <div class="task-list" id="student-in-class-list"><div class="empty-state">Загрузка...</div></div>
+        <div class="section-title"><span>🏠 Домашнее задание</span></div>
+        <div class="task-list" id="student-homework-list"><div class="empty-state">Загрузка...</div></div>
+      </div>
+
+      <!-- Панель админа -->
+      <div id="admin-view" style="display: none;">
+        <div class="admin-panel">
+          <h3>➕ Создать задачу</h3>
+          <form id="add-task-form">
+            <div class="form-row">
+              <div><label style="font-size: 0.8rem; color: var(--text-muted);">Тип</label><select id="task-type"><option value="in-class">На уроке</option><option value="homework">Домашнее задание</option></select></div>
+              <div><label style="font-size: 0.8rem; color: var(--text-muted);">Формат</label><select id="task-format"><option value="text">Текстовый ответ</option><option value="code">Написать код</option><option value="test">Тест (выбор)</option></select></div>
+            </div>
+            <div class="form-group"><label style="font-size: 0.8rem; color: var(--text-muted);">Название</label><input type="text" id="task-title" placeholder="Например: Циклы в Python" required></div>
+            <div class="form-group"><label style="font-size: 0.8rem; color: var(--text-muted);">Условие задачи</label><textarea id="task-desc" rows="2" placeholder="Опишите задачу..." required></textarea></div>
+            <button type="submit" id="add-btn">Добавить в базу</button>
+          </form>
+        </div>
+        <div class="section-title"><span>📋 Проверка работ</span></div>
+        <div class="task-list" id="admin-task-list"><div class="empty-state">Загрузка...</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       СКРИПТЫ
+       ============================================================ -->
+  <script type="module">
+    const checkFirebase = setInterval(() => {
+      if (window.firestoreDB && window.firestore) {
+        clearInterval(checkFirebase);
+        initApp();
+      }
+    }, 100);
+
+    function initApp() {
+      const db = window.firestoreDB;
+      const { collection, addDoc, deleteDoc, doc, onSnapshot, query, orderBy, updateDoc, setDoc, getDoc } = window.firestore;
+
+      // УЛУЧШЕННЫЙ РОУТИНГ (работает и на сервере, и локально)
+      const path = window.location.pathname;
+      const search = window.location.search;
+      const hash = window.location.hash;
+      
+      const isLessons = path.includes('/lessons') || search.includes('lessons') || hash.includes('lessons');
+      
+      if (isLessons) {
+        document.getElementById('page-home').classList.remove('active');
+        document.getElementById('page-lessons').classList.add('active');
+        document.title = "Уроки — progs.fun";
+        initLessonsLogic(db, { collection, addDoc, deleteDoc, doc, onSnapshot, query, orderBy, updateDoc, setDoc, getDoc });
+      } else {
+        document.getElementById('page-home').classList.add('active');
+        initHomeLogic();
+      }
+    }
+
+    // ЛОГИКА ГЛАВНОЙ
+    function initHomeLogic() {
+      const yearEl = document.getElementById('year');
+      if (yearEl) yearEl.textContent = new Date().getFullYear();
+
+      const revealEls = document.querySelectorAll('.reveal');
+      if ('IntersectionObserver' in window) {
+        const io = new IntersectionObserver((entries) => {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting) {
+              entry.target.classList.add('is-visible');
+              io.unobserve(entry.target);
+            }
+          });
+        }, { threshold: 0.12, rootMargin: '0px 0px -60px 0px' });
+        revealEls.forEach((el) => io.observe(el));
+      } else {
+        revealEls.forEach((el) => el.classList.add('is-visible'));
+      }
+
+      document.querySelectorAll('a[href^="#"]').forEach((link) => {
+        link.addEventListener('click', (e) => {
+          const id = link.getAttribute('href');
+          if (id === '#' || id.length < 2) return;
+          const target = document.querySelector(id);
+          if (!target) return;
+          e.preventDefault();
+          const navHeight = document.querySelector('.nav')?.offsetHeight ?? 0;
+          const top = target.getBoundingClientRect().top + window.pageYOffset - navHeight - 12;
+          window.scrollTo({ top, behavior: 'smooth' });
+        });
+      });
+    }
+
+    // ЛОГИКА УРОКОВ
+    function initLessonsLogic(db, firestoreFns) {
+      const { collection, addDoc, deleteDoc, doc, onSnapshot, query, orderBy, updateDoc, setDoc, getDoc } = firestoreFns;
+      
+      const tasksCollection = collection(db, "tasks");
+      
+      const users = {
+        'Алексей': { password: 'LeshaShahmat', role: 'admin', name: 'Алексей' },
+        'Артем': { password: 'ArtemUroki', role: 'student', name: 'Артем', uid: 'artem' }
+      };
+
+      let currentUser = null;
+      let studentXP = 0;
+      let studentSolved = 0;
+      let tasksCache = [];
+
+      const authScreen = document.getElementById('auth-screen');
+      const appScreen = document.getElementById('lessons-app-screen');
+      const loadingOverlay = document.getElementById('loading-overlay');
+
+      window.showToast = function(msg) {
+        const toast = document.getElementById('toast');
+        toast.textContent = msg;
+        toast.classList.add('show');
+        setTimeout(() => toast.classList.remove('show'), 3000);
+      }
+
+      document.getElementById('login-form').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const user = document.getElementById('username').value.trim();
+        const pass = document.getElementById('password').value;
+
+        if (users[user] && users[user].password === pass) {
+          currentUser = users[user];
+          currentUser.username = user;
+          document.getElementById('login-error').style.display = 'none';
+          authScreen.style.display = 'none';
+          appScreen.style.display = 'block';
+          initDashboard();
+        } else {
+          document.getElementById('login-error').textContent = 'Неверный логин или пароль';
+          document.getElementById('login-error').style.display = 'block';
+        }
+      });
+
+      document.getElementById('logout-btn').addEventListener('click', () => {
+        currentUser = null;
+        appScreen.style.display = 'none';
+        authScreen.style.display = 'flex';
+        document.getElementById('login-form').reset();
+        window.location.reload();
+      });
+
+      function initDashboard() {
+        document.getElementById('display-name').textContent = currentUser.name;
+        document.getElementById('display-role').textContent = currentUser.role === 'admin' ? 'Преподаватель' : 'Ученик';
+        
+        if (currentUser.role === 'admin') {
+          document.getElementById('admin-view').style.display = 'block';
+          document.getElementById('student-view').style.display = 'none';
+        } else {
+          document.getElementById('admin-view').style.display = 'none';
+          document.getElementById('student-view').style.display = 'block';
+          loadStudentStats();
+        }
+        listenToTasks();
+      }
+
+      async function loadStudentStats() {
+        const docRef = doc(db, "users", currentUser.uid);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          studentXP = data.xp || 0;
+          studentSolved = data.solved || 0;
+        } else {
+          await setDoc(docRef, { xp: 0, solved: 0 });
+        }
+        updateStudentStatsUI();
+      }
+
+      function updateStudentStatsUI() {
+        if (currentUser.role === 'student') {
+          document.getElementById('student-xp').textContent = studentXP;
+          document.getElementById('student-solved').textContent = studentSolved;
+        }
+      }
+
+      function listenToTasks() {
+        loadingOverlay.style.display = 'flex';
+        const q = query(tasksCollection, orderBy("createdAt", "desc"));
+
+        onSnapshot(q, (snapshot) => {
+          tasksCache = [];
+          snapshot.forEach((doc) => {
+            tasksCache.push({ id: doc.id, ...doc.data() });
+          });
+          renderTasks();
+          loadingOverlay.style.display = 'none';
+        }, (error) => {
+          console.error("Ошибка чтения БД:", error);
+          loadingOverlay.style.display = 'none';
+          window.showToast("Ошибка доступа к БД.");
+        });
+      }
+
+      function renderTasks() {
+        if (currentUser.role === 'admin') {
+          renderAdminTasks();
+        } else {
+          renderStudentTasks();
+        }
+      }
+
+      function renderStudentTasks() {
+        const inClassList = document.getElementById('student-in-class-list');
+        const hwList = document.getElementById('student-homework-list');
+        inClassList.innerHTML = '';
+        hwList.innerHTML = '';
+
+        let hasInClass = false;
+        let hasHW = false;
+
+        tasksCache.forEach(task => {
+          const el = document.createElement('div');
+          el.className = 'task-card';
+          
+          let statusBadge = '';
+          if (task.status === 'pending') statusBadge = '<span class="badge badge-info">Новая</span>';
+          if (task.status === 'submitted') statusBadge = '<span class="badge badge-warning">На проверке</span>';
+          if (task.status === 'accepted') statusBadge = '<span class="badge badge-success">Зачтено</span>';
+          if (task.status === 'rejected') statusBadge = '<span class="badge badge-danger">Отклонено</span>';
+
+          let commentHTML = '';
+          if (task.teacherComment) {
+            commentHTML = `<div class="teacher-comment">💬 Учитель: ${escapeHTML(task.teacherComment)}</div>`;
+          }
+
+          let answerHTML = '';
+          if (task.status === 'pending' || task.status === 'rejected') {
+            answerHTML = `
+              <div class="answer-area">
+                <textarea id="answer-${task.id}" placeholder="Твой ответ...">${task.studentAnswer ? escapeHTML(task.studentAnswer) : ''}</textarea>
+                <button class="btn-secondary" style="margin-top: 8px; width: auto;" onclick="submitAnswer('${task.id}')">Отправить на проверку</button>
+              </div>
+            `;
+          } else if (task.status === 'submitted') {
+            answerHTML = `
+              <div class="answer-area">
+                <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 4px;">Твой ответ:</div>
+                <div style="font-family: var(--mono); font-size: 0.85rem; background: var(--surface-raised); padding: 8px; border-radius: 6px;">${escapeHTML(task.studentAnswer)}</div>
+              </div>
+            `;
+          } else if (task.status === 'accepted') {
+            answerHTML = `
+              <div class="answer-area">
+                <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 4px;">Оценка: <strong style="color: var(--accent-green);">${task.grade || 5} / 5</strong></div>
+                <div style="font-family: var(--mono); font-size: 0.85rem; background: var(--surface-raised); padding: 8px; border-radius: 6px;">${escapeHTML(task.studentAnswer)}</div>
+              </div>
+            `;
+          }
+
+          el.innerHTML = `
+            <div class="task-header">
+              <div><h4>${escapeHTML(task.title)}</h4><p>${escapeHTML(task.desc)}</p></div>
+              <div style="display:flex; flex-direction:column; gap:6px; align-items:flex-end;">${statusBadge}<span class="badge">${escapeHTML(task.format)}</span></div>
+            </div>
+            ${commentHTML}
+            ${answerHTML}
+          `;
+
+          if (task.type === 'in-class') {
+            inClassList.appendChild(el);
+            hasInClass = true;
+          } else {
+            hwList.appendChild(el);
+            hasHW = true;
+          }
+        });
+
+        if (!hasInClass) inClassList.innerHTML = '<div class="empty-state">Нет активных задач.</div>';
+        if (!hasHW) hwList.innerHTML = '<div class="empty-state">Домашнее задание пока не задано.</div>';
+      }
+
+      function renderAdminTasks() {
+        const list = document.getElementById('admin-task-list');
+        list.innerHTML = '';
+
+        if (tasksCache.length === 0) {
+          list.innerHTML = '<div class="empty-state">Задач пока нет.</div>';
+          return;
+        }
+
+        tasksCache.forEach((task) => {
+          const el = document.createElement('div');
+          el.className = 'task-card';
+          let actionHTML = '';
+          
+          if (task.status === 'pending') {
+            actionHTML = `<div style="font-size: 0.85rem; color: var(--text-muted);">Ожидает ответа ученика...</div>`;
+          } else if (task.status === 'submitted') {
+            actionHTML = `
+              <div class="answer-area" style="border-top: none; padding-top: 8px;">
+                <div style="font-size: 0.85rem; color: var(--accent-blue); margin-bottom: 6px;">Ответ ученика:</div>
+                <div style="font-family: var(--mono); font-size: 0.9rem; background: var(--surface-raised); padding: 12px; border-radius: 8px; margin-bottom: 12px; border: 1px solid var(--border);">${escapeHTML(task.studentAnswer)}</div>
+                <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 12px;">
+                  <label style="font-size: 0.85rem;">Оценка:</label>
+                  <select id="grade-${task.id}" style="width: auto; padding: 6px 12px;"><option value="5">5 (Отлично)</option><option value="4">4 (Хорошо)</option><option value="3">3 (Удовл.)</option><option value="2">2 (Плохо)</option></select>
+                </div>
+                <div style="display: flex; gap: 8px;">
+                  <button class="btn-success" style="flex:1;" onclick="checkAnswer('${task.id}', 'accepted')">Зачесть</button>
+                  <button class="btn-danger" style="flex:1;" onclick="checkAnswer('${task.id}', 'rejected')">Отклонить</button>
+                </div>
+              </div>
+            `;
+          } else if (task.status === 'accepted') {
+            actionHTML = `
+              <div class="answer-area">
+                <div class="badge badge-success">Зачтено</div>
+                <div style="font-family: var(--mono); font-size: 0.85rem; background: var(--surface-raised); padding: 8px; border-radius: 6px; margin-top: 8px;">${escapeHTML(task.studentAnswer)}</div>
+                <button class="btn-danger" style="width: auto; padding: 4px 10px; font-size: 0.75rem; margin-top: 8px;" onclick="deleteTask('${task.id}')">Удалить задачу</button>
+              </div>
+            `;
+          } else if (task.status === 'rejected') {
+            actionHTML = `
+              <div class="answer-area">
+                <div class="badge badge-danger">Отклонено</div>
+                <div style="font-size: 0.85rem; color: var(--text-muted); margin-top: 6px;">Ученик должен исправить и отправить заново.</div>
+                <button class="btn-danger" style="width: auto; padding: 4px 10px; font-size: 0.75rem; margin-top: 8px;" onclick="deleteTask('${task.id}')">Удалить задачу</button>
+              </div>
+            `;
+          }
+
+          el.innerHTML = `
+            <div class="task-header">
+              <div><h4>${escapeHTML(task.title)}</h4><p>${escapeHTML(task.desc)}</p></div>
+              <span class="badge">${task.type === 'in-class' ? 'Урок' : 'ДЗ'} • ${escapeHTML(task.format)}</span>
+            </div>
+            ${actionHTML}
+          `;
+          list.appendChild(el);
+        });
+      }
+
+      document.getElementById('add-task-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const btn = document.getElementById('add-btn');
+        btn.disabled = true;
+        btn.textContent = 'Создание...';
+
+        const newTask = {
+          title: document.getElementById('task-title').value,
+          desc: document.getElementById('task-desc').value,
+          type: document.getElementById('task-type').value,
+          format: document.getElementById('task-format').value,
+          status: 'pending',
+          studentAnswer: '',
+          teacherComment: '',
+          grade: 0,
+          createdAt: Date.now()
+        };
+
+        try {
+          await addDoc(tasksCollection, newTask);
+          document.getElementById('add-task-form').reset();
+          window.showToast('Задача добавлена!');
+        } catch (err) {
+          window.showToast('Ошибка: ' + err.message);
+        } finally {
+          btn.disabled = false;
+          btn.textContent = 'Добавить в базу';
+        }
+      });
+
+      window.submitAnswer = async function(taskId) {
+        const answer = document.getElementById(`answer-${taskId}`).value.trim();
+        if (!answer) {
+          window.showToast('Напиши ответ перед отправкой!');
+          return;
+        }
+        try {
+          const taskRef = doc(db, "tasks", taskId);
+          await updateDoc(taskRef, { status: 'submitted', studentAnswer: answer, teacherComment: '' });
+          window.showToast('Ответ отправлен учителю!');
+        } catch (err) {
+          window.showToast('Ошибка: ' + err.message);
+        }
+      };
+
+      window.checkAnswer = async function(taskId, newStatus) {
+        let comment = '';
+        if (newStatus === 'rejected') {
+          comment = prompt('Напиши, что нужно исправить:');
+          if (comment === null) return;
+        }
+        const grade = document.getElementById(`grade-${taskId}`).value;
+        try {
+          const taskRef = doc(db, "tasks", taskId);
+          await updateDoc(taskRef, { status: newStatus, teacherComment: comment, grade: newStatus === 'accepted' ? parseInt(grade) : 0 });
+          if (newStatus === 'accepted') {
+            const studentRef = doc(db, "users", "artem");
+            const studentSnap = await getDoc(studentRef);
+            if (studentSnap.exists()) {
+              const data = studentSnap.data();
+              await updateDoc(studentRef, { xp: (data.xp || 0) + 10, solved: (data.solved || 0) + 1 });
+            }
+            window.showToast('Работа зачтена! Ученик получил 10 XP.');
+          } else {
+            window.showToast('Работа отправлена на доработку.');
+          }
+        } catch (err) {
+          window.showToast('Ошибка: ' + err.message);
+        }
+      };
+
+      window.deleteTask = async function(taskId) {
+        if (!confirm('Удалить эту задачу?')) return;
+        try {
+          await deleteDoc(doc(db, "tasks", taskId));
+          window.showToast('Задача удалена.');
+        } catch (err) {
+          window.showToast('Ошибка: ' + err.message);
+        }
+      };
+
+      function escapeHTML(str) {
+        if (!str) return '';
+        return str.replace(/[&<>'"]/g, tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag));
+      }
+    }
+  </script>
+</body>
+</html>
